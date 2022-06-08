@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
+
 import {
+  Alert,
+  AlertTitle,
   Paper,
   Table,
   TableBody,
@@ -7,6 +10,7 @@ import {
   TableContainer,
   TableRow,
 } from "@mui/material";
+import CircularProgress from "@mui/material/CircularProgress";
 
 import { useHttp } from "../hooks/http.hook";
 import OrderSearchForm from "./OrderSearchForm";
@@ -15,46 +19,56 @@ import OrderSearchFooter from "./OrderSearchFooter";
 
 import "./orderSearch.css";
 
-function createData(name, biomaterialName, code, researchName, price) {
-  return {
-    name,
-    biomaterialName,
-    code,
-    researchName,
-    price,
-  };
-}
-
-const rows = [
-  createData("Cupcake", "", 305, "исследование", 578),
-  createData("Donut", "", 452, "исследование", 578),
-  createData("Eclair", "", 262, "исследование", 578),
-  createData("Frozen yoghurt", "", 159, "исследование", 578),
-  createData("Gingerbread", "", 356, "исследование", 578),
-  createData("Honeycomb", "", 408, "исследование", 578),
-  createData("Ice cream sandwich", "", 454, "исследование", 578),
-  createData("Jelly Bean", "", 375, "исследование", 578),
-  createData("KitKat", "", 518, "исследование", 578),
-  createData("Lollipop", "", 392, "исследование", 578),
-  createData("Marshmallow", "", 318, "исследование", 578),
-  createData("Nougat", "", 360, "исследование", 578),
-  createData("Oreo", "", 437, "исследование", 578),
-  createData("KitKat", "", 643, "исследование", 578),
-  createData("Lollipop", "", 245, "исследование", 578),
-  createData("Marshmallow", "", 3187678, "исследование", 578),
-  createData("Nougat", "", 36054, "исследование", 578),
-  createData("Oreo", "", 4375, "исследование", 578),
-];
-
 const OrderSearch = () => {
+  const [orderItems, setOrderItems] = useState([]);
+  const [countPage, setCountPage] = useState(0);
   const [order, setOrder] = useState("asc");
-  const [orderBy, setOrderBy] = useState("code");
+  const [orderBy, setOrderBy] = useState("name");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
   const { request } = useHttp();
 
-  useEffect(() => {}, []);
+  const getOrders = async (url) => {
+    setLoading(true);
+    const res = await request(url);
+    setLoading(false);
+    return {
+      count: res.count,
+      size: res.size,
+      data: res.dataObjects,
+    };
+  };
+
+  useEffect(() => {
+    setError(false);
+
+    getOrders(
+      `http://192.168.3.5:5666/api/orders/researches-with-prices?page=${page}&size=${pageSize}&sort[0].key=${orderBy}&sort[0].value=${order}`
+    )
+      .then((res) => {
+        setOrderItems(res.data), setCountPage(res.count);
+      })
+      .catch((e) => {
+        console.log(e), setError(true), setLoading(false);
+      });
+  }, [page, pageSize, orderBy, order]);
+
+  const searchByCode = (code) => {
+    setError(false);
+    getOrders(
+      `http://192.168.3.5:5666/api/orders/researches-with-prices?page=${page}&size=${pageSize}&sort[0].key=${orderBy}&sort[0].value=${order}&code=${code}`
+    )
+      .then((res) => {
+        setOrderItems(res.data), setCountPage(res.count);
+      })
+      .catch((e) => {
+        console.log(e), setError(true), setLoading(false);
+      });
+  };
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -64,23 +78,53 @@ const OrderSearch = () => {
 
   const handlePageSize = (e) => {
     setPageSize(e.target.value);
-    console.log(e.target.value);
   };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
-    console.log(newPage);
   };
 
-  const pageCount = 132;
+  const ordersRender = (items) =>
+    items.map((item) => {
+      const { code, name, biomaterialName, researchName, price, currencyName } =
+        item;
+
+      return (
+        <TableRow key={code + name}>
+          <TableCell>{code}</TableCell>
+          <TableCell>{name}</TableCell>
+          <TableCell>{biomaterialName}</TableCell>
+          <TableCell>
+            {researchName ? researchName.slice(0, 6) : null}
+          </TableCell>
+          <TableCell>{price + " " + currencyName}</TableCell>
+        </TableRow>
+      );
+    });
+
+  const elements = loading || error ? null : ordersRender(orderItems);
+
+  const spinner = loading ? (
+    <div className="spinner">
+      <CircularProgress />
+    </div>
+  ) : null;
+
+  const errorMessage = error ? (
+    <Alert severity="error" className="error">
+      <AlertTitle>Error</AlertTitle>
+    </Alert>
+  ) : null;
 
   return (
     <div className="orderSearch">
       <div className="top">
         <h1 className="title">Order Search</h1>
-        <OrderSearchForm />
+        <OrderSearchForm onSearchByCode={searchByCode} />
       </div>
-      <Paper elevation={3} sx={{ overflow: "hidden" }}>
+      <Paper elevation={3} sx={{ overflow: "hidden", position: "relative" }}>
+        {spinner}
+        {errorMessage}
         <TableContainer sx={{ height: 440 }}>
           <Table stickyHeader aria-label="customized table" size="small">
             <OrderSearchHead
@@ -88,32 +132,20 @@ const OrderSearch = () => {
               orderBy={orderBy}
               onRequestSort={handleRequestSort}
             />
-            <TableBody>
-              {rows.map(
-                ({ code, name, biomaterialName, researchName, price }) => {
-                  return (
-                    <TableRow key={code + name}>
-                      <TableCell>{code}</TableCell>
-                      <TableCell>{name}</TableCell>
-                      <TableCell>{biomaterialName}</TableCell>
-                      <TableCell>{researchName}</TableCell>
-                      <TableCell>{price}</TableCell>
-                    </TableRow>
-                  );
-                }
-              )}
-            </TableBody>
+            <TableBody>{elements}</TableBody>
           </Table>
         </TableContainer>
       </Paper>
 
-      <OrderSearchFooter
-        handleChangePage={handleChangePage}
-        handlePageSize={handlePageSize}
-        pageCount={pageCount}
-        pageSize={pageSize}
-        page={page}
-      />
+      {loading || error ? null : (
+        <OrderSearchFooter
+          handleChangePage={handleChangePage}
+          handlePageSize={handlePageSize}
+          countPage={countPage}
+          pageSize={pageSize}
+          page={page}
+        />
+      )}
     </div>
   );
 };

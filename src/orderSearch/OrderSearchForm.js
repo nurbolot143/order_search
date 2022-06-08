@@ -2,13 +2,22 @@ import React, { useState } from "react";
 
 import { Button, Grid, OutlinedInput } from "@mui/material";
 
-const OrderSearchForm = () => {
+const OrderSearchForm = ({ onSearchByCode }) => {
   const [code, setCode] = useState("");
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(code);
+
+    onSearchByCode(code);
     setCode("");
+  };
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    const numbers = /^[\d -]+$|(^$)/;
+
+    if (numbers.test(newValue)) {
+      setCode(newValue);
+    }
   };
 
   return (
@@ -17,11 +26,12 @@ const OrderSearchForm = () => {
         <Grid item>
           <OutlinedInput
             placeholder="Enter code"
-            sx={{ height: 40, width: 150 }}
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
+            sx={{
+              height: 40,
+              width: 150,
             }}
+            value={code}
+            onChange={handleChange}
           />
         </Grid>
         <Grid item>

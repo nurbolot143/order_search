@@ -8,7 +8,7 @@ import {
 import React from "react";
 
 const OrderSearchFooter = (props) => {
-  const { handleChangePage, handlePageSize, pageSize, page, pageCount } = props;
+  const { handleChangePage, handlePageSize, pageSize, page, countPage } = props;
 
   return (
     <div className="footer">
@@ -26,13 +26,14 @@ const OrderSearchFooter = (props) => {
             <MenuItem value={30}>30</MenuItem>
           </Select>
         </FormControl>
-        Page {page} of {Math.ceil(pageCount / pageSize)} ({pageCount} items)
+        Page {page} of {Math.ceil(countPage / pageSize)} ({countPage} items)
       </div>
       <div className="footer__right">
         <Pagination
-          count={Math.ceil(pageCount / pageSize)}
+          count={Math.ceil(countPage / pageSize)}
           variant="outlined"
           shape="rounded"
+          defaultValue={page}
           siblingCount={2}
           onChange={handleChangePage}
         />

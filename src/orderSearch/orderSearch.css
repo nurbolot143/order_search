@@ -61,5 +61,11 @@ tr:nth-child(even) {
   align-items: flex-end;
   margin-bottom: 20px;
 }
-/* @media (max-width: 496px) {
-} */
+
+.spinner,
+.error {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+}
